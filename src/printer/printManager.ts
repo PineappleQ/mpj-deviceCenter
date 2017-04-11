@@ -166,6 +166,16 @@ export class PrinterManager {
         if (printParams.printId) {
             infoStr["print-id"] = printParams.printId;
         }
+        //启用切刀等指令参数
+        if (printParams.directives) {
+            let directivesArr = [];
+            for (let key of printParams.directives) {
+                let str = key + "=" + printParams.directives[key];
+                directivesArr.push(str);
+            }
+            let urlParams = directivesArr.join("&");
+            printParams.url += ("?" + urlParams);
+        }
         infoStr.type = printParams.type;
         let options: AxiosRequestConfig = {
             method: "POST",
@@ -309,6 +319,14 @@ interface PrintParams {
      * @memberOf PrintParams
      */
     token: string;
+
+    /**
+     * 
+     * 打印的指令参数
+     * 
+     * @memberOf PrintParams
+     */
+    directives;
 }
 
 
