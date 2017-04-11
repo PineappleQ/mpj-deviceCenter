@@ -1,7 +1,7 @@
 {
     "name": "mpj-devicecenter",
     "description": "",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "scripts": {},
     "dependencies": {
         "axios": "^0.16.1"

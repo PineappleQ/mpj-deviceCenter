@@ -169,7 +169,7 @@ export class PrinterManager {
         //启用切刀等指令参数
         if (printParams.directives) {
             let directivesArr = [];
-            for (let key of printParams.directives) {
+            for (let key in printParams.directives) {
                 let str = key + "=" + printParams.directives[key];
                 directivesArr.push(str);
             }
