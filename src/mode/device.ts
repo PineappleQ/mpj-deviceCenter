@@ -47,7 +47,40 @@ export interface IDevice {
 }
 
 export interface FindParams {
+    
+    /**
+     * 店铺的id
+     * 
+     * @type {string}
+     * @memberOf FindParams
+     */
+    storeId: string;
+    
+    /**
+     * token
+     * 
+     * @type {string}
+     * @memberOf FindParams
+     */
+    token: string;
+    
+    /**
+     * 连接类型 "wifi"等
+     * @type {string}
+     * @memberOf FindParams
+     */
     type: string;
+    
+    /**
+     * 
+     * 设备信息
+     * @type {{
+     *         ip?: string;
+     *         port?: number;
+     *         deviceType?: string
+     *     }}
+     * @memberOf FindParams
+     */
     info?: {
         ip?: string;
         port?: number;

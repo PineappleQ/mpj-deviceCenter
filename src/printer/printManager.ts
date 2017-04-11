@@ -1,22 +1,140 @@
+import { FindParams } from './../mode/device';
 import { Base64 } from './../common/base64';
 import { Printer, DeviceInfo } from './printerDevice';
 import { IDevice } from "../mode/device";
 import Axios, { AxiosRequestConfig } from "axios"
 export class PrinterManager {
+    constructor() { }
+    static Current: PrinterManager = new PrinterManager();
+    /**
+     * 添加的打印机数组
+     * 
+     * @private
+     * @type {Printer[]}
+     * @memberOf PrinterManager
+     */
     private deviceList: Printer[] = [];
+
+    /**
+     * 查找到的打印机数组
+     * 该数组为临时数组，每次查找时会先清空
+     * @private
+     * @type {Printer[]}
+     * @memberOf PrinterManager
+     */
+    private findDeviceList: Printer[] = [];
 
     get ManagerType() {
         return "printerManager";
     }
-    static Current: PrinterManager = new PrinterManager();
 
-    constructor() { }
+    //打印机指令
+    instructionSets = [
+        { "value": 'pos/esc', name: '标准EPSON兼容' },
+        { "value": 'pos/esc/ab', name: '爱宝（Aibao）系列' },
+        { "value": 'pos/esc/sdk/sprt', name: '斯普瑞特（SPRT）打印机' }
+    ];
+    //打印机宽度
+    selectPageSizes = [
+        { "value": "size-58", "label": "58mm" },
+        { "value": "size-73", "label": "73mm" },
+        { "value": "size-80", "label": "80mm" }
+    ];
+    //打印机尾部走纸行数
+    paperScrollRows = [
+        { "value": "1", "label": "1行" },
+        { "value": "2", "label": "2行" },
+        { "value": "3", "label": "3行" },
+        { "value": "4", "label": "4行" },
+        { "value": "5", "label": "5行" },
+        { "value": "6", "label": "6行" },
+        { "value": "7", "label": "7行" },
+        { "value": "8", "label": "8行" },
+        { "value": "9", "label": "9行" }
+    ];
 
+    getFindDevices(): Printer[] {
+        return this.findDeviceList;
+    }
+
+    /**
+     * 添加打印机到设备数组
+     * 
+     * @param {IDevice} printer
+     * 
+     * @memberOf PrinterManager
+     */
     AddDevice(printer: IDevice) {
-        //TODO:
         this.deviceList.push(printer);
     }
 
+    /**
+     * 
+     * 查找打印机
+     * @param {string} url
+     * @param {FindParams} findParams
+     * @returns {Promise<PrintResult>}
+     * 
+     * @memberOf PrinterManager
+     */
+    findDevice(url: string, findParams: FindParams): Promise<PrintResult> {
+        this.findDeviceList = [];
+        let options: AxiosRequestConfig = {
+            method: "POST",
+            url: url,
+            headers: {
+                info: findParams.info,
+                storeId: findParams.storeId,
+                token: findParams.token,
+                type: findParams.type
+            }
+        }
+        let findResult: PrintResult = null;
+        return new Promise<PrintResult>((resolve, reject) => {
+            Axios(options).then((response) => {
+                let result = response.data;
+                let msg = this.errMsg(result);
+                msg = msg ? msg : "查找设备成功";
+                findResult = {
+                    status: 200,
+                    msg: msg
+                }
+                if (result.data) {
+                    findResult.data = result.data;
+                    if (Array.isArray(result.data)) {
+                        this.findDeviceList = this.findDeviceList.concat(result.data);
+                    } else {
+                        this.findDeviceList.push(result.data);
+                    }
+
+                }
+                resolve(findResult);
+            }).catch((error) => {
+                reject(error);
+            });
+        })
+
+    }
+
+    /**
+     * 获取所有的打印机
+     * 
+     * @returns
+     * 
+     * @memberOf PrinterManager
+     */
+    getAllDevices() {
+        return this.deviceList;
+    }
+
+    /**
+     * 打印html模板
+     * 
+     * @param {PrintParams} printParams
+     * @returns {Promise<PrintResult>}
+     * 
+     * @memberOf PrinterManager
+     */
     printHtml(printParams: PrintParams): Promise<PrintResult> {
         switch (printParams.printMode) {
             case "http":
@@ -44,10 +162,21 @@ export class PrinterManager {
         }
         let base64 = new Base64();
         let postData = base64.encode(printParams.printTemplate);
+        let infoStr: any = {}
+        if (printParams.printId) {
+            infoStr["print-id"] = printParams.printId;
+        }
+        infoStr.type = printParams.type;
         let options: AxiosRequestConfig = {
             method: "POST",
             url: printParams.url,
             data: postData,
+            headers: {
+                info: JSON.stringify(printParams.deviceInfo),
+                storeId: printParams.storeId,
+                token: printParams.token,
+                type: printParams.type
+            }
         }
         Axios(options).then((response) => {
             console.log(response);
@@ -164,6 +293,22 @@ interface PrintParams {
      * @memberOf PrintParams
      */
     type: string;
+
+    /**
+     * 店铺id
+     * 
+     * @type {string}
+     * @memberOf PrintParams
+     */
+    storeId: string;
+
+    /**
+     * token
+     * 
+     * @type {string}
+     * @memberOf PrintParams
+     */
+    token: string;
 }
 
 
@@ -179,7 +324,7 @@ interface PrintResult {
      * @type {number}
      * @memberOf PrintResult
      */
-    code: number;
+    status: number;
 
     /**
      * 结果信息
@@ -188,4 +333,11 @@ interface PrintResult {
      * @memberOf PrintResult
      */
     msg: string;
+    /**
+     * 
+     * 返回的数据
+     * 
+     * @memberOf PrintResult
+     */
+    data?
 }
