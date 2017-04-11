@@ -1,6 +1,7 @@
+import { Base64 } from './../common/base64';
 import { Printer, DeviceInfo } from './printerDevice';
 import { IDevice } from "../mode/device";
-
+import Axios, { AxiosRequestConfig } from "axios"
 export class PrinterManager {
     private deviceList: Printer[] = [];
 
@@ -41,6 +42,63 @@ export class PrinterManager {
             console.log("缺少打印服务地址");
             return;
         }
+        let base64 = new Base64();
+        let postData = base64.encode(printParams.printTemplate);
+        let options: AxiosRequestConfig = {
+            method: "POST",
+            url: printParams.url,
+            data: postData,
+        }
+        Axios(options).then((response) => {
+            console.log(response);
+        })
+    }
+    /**
+     * 返回参数及对应的信息
+     * @param data 
+     */
+    errMsg(data) {
+        if (!data)
+            return;
+        if (data.retCode == 2) {
+            return;
+        }
+        if (data.msg) {
+            return data.msg;
+        }
+        let msg = "";
+
+        switch (data.retCode) {
+
+            case 201:
+                msg = "打印机缺纸，请换纸。";
+                break;
+            case 205:
+                msg = "纸舱盖未到位，请检查是否已经合上。";
+                break;
+            case 202:
+            case 204:
+                msg = "打印机发生未知故障(" + data.retCode + ")，请关闭电源检查打印机并重启。如果问题仍然存在请联系设备商。";
+                break;
+            case 203:
+                msg = "打印机未连接，请检查连接是否正常，电源是否打开";
+                break;
+            case 200:
+            case 404:
+            case 500:
+                msg = "设备服务器发生内部错误(" + data.retCode + ")，请联系平台供应商。";
+                break;
+            case 408:
+                msg = "设备服务器无法连接。";
+                break;
+            case 301:
+                msg = "设备传入参数不足或错误。";
+                break;
+            case 206:
+                msg = "打印任务过多，正在排队打印，请等待...";
+                break;
+        }
+        return msg;
     }
 }
 
