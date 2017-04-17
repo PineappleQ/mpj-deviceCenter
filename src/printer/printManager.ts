@@ -57,6 +57,13 @@ export class PrinterManager {
         return this.findDeviceList;
     }
 
+    saveFindDevice(printer: any) {
+        if (Array.isArray(printer)) {
+            this.findDeviceList = this.findDeviceList.concat(printer);
+        } else {
+            this.findDeviceList.push(printer);
+        }
+    }
     /**
      * 添加打印机到设备数组
      * 
@@ -64,8 +71,48 @@ export class PrinterManager {
      * 
      * @memberOf PrinterManager
      */
-    AddDevice(printer: IDevice) {
+    addDevice(printer: IDevice) {
+        let printerListStr = localStorage.getItem("printerList");
+        if (printerListStr) {
+            this.deviceList = JSON.parse(printerListStr)
+        } else {
+            this.deviceList = [];
+        }
         this.deviceList.push(printer);
+        localStorage.setItem("printerList", JSON.stringify(this.deviceList));
+    }
+
+    /**
+     * 删除打印机 
+     * 
+     * @param {string} id
+     * 
+     * @memberOf PrinterManager
+     */
+    deleteDeviceByID(id: string) {
+        let printerListStr = localStorage.getItem("printerList");
+        let deviceTemp = null;
+        if (printerListStr) {
+            this.deviceList = JSON.parse(printerListStr);
+            for (let i = 0; i < this.deviceList.length; i++) {
+                if (this.deviceList[i].id == id) {
+                    deviceTemp = this.deviceList[i];
+                    this.deviceList.splice(i, 1);
+                    break;
+                }
+            }
+            localStorage.setItem("printerList", JSON.stringify(this.deviceList));
+            return {
+                status: 200,
+                msg: "删除成功",
+                data: deviceTemp
+            }
+        } else {
+            return {
+                status: 404,
+                msg: "未找到打印机"
+            }
+        }
     }
 
     /**
@@ -101,12 +148,6 @@ export class PrinterManager {
                 }
                 if (result.data) {
                     findResult.data = result.data;
-                    if (Array.isArray(result.data)) {
-                        this.findDeviceList = this.findDeviceList.concat(result.data);
-                    } else {
-                        this.findDeviceList.push(result.data);
-                    }
-
                 }
                 resolve(findResult);
             }).catch((error) => {
@@ -124,7 +165,49 @@ export class PrinterManager {
      * @memberOf PrinterManager
      */
     getAllDevices() {
-        return this.deviceList;
+        let printerListStr = localStorage.getItem("printerList");
+        return JSON.parse(printerListStr);
+    }
+
+    getDeviceById(id: string) {
+        let deviceListStr = localStorage.getItem("printerList");
+        if (!deviceListStr) {
+            return {
+                status: 404,
+                msg: "未找到打印机"
+            };
+        }
+        let deviceList = JSON.parse(deviceListStr);
+        let printer = deviceList.find((device) => {
+            return device.id == id;
+        });
+        return printer;
+    }
+    /**
+     * 更新打印机
+     * @param printer 
+     */
+    updateDeviceById(printer: Printer) {
+        let deviceListStr = localStorage.getItem("printerList");
+        if (!deviceListStr) {
+            return {
+                status: 404,
+                msg: "未找到打印机"
+            };
+        }
+        let deviceList = JSON.parse(deviceListStr);
+        for (let i = 0; i < deviceList.length; i++) {
+            if (deviceList[i].id == printer.id) {
+                deviceList[i] = printer;
+                break;
+            }
+        }
+        localStorage.setItem("printerList", JSON.stringify(deviceList));
+        return {
+            status: 200,
+            msg: "更新打印机成功",
+            data: printer
+        }
     }
 
     /**
@@ -136,15 +219,16 @@ export class PrinterManager {
      * @memberOf PrinterManager
      */
     printHtml(printParams: PrintParams): Promise<PrintResult> {
+        let result = null;
         switch (printParams.printMode) {
             case "http":
-                this.printByHttp(printParams);
+                result = this.printByHttp(printParams);
                 break;
             default:
-                this.printByHttp(printParams);
+                result = this.printByHttp(printParams);
                 break;
         }
-        return;
+        return result;
     }
 
     /**
@@ -188,9 +272,15 @@ export class PrinterManager {
                 type: printParams.type
             }
         }
-        Axios(options).then((response) => {
-            console.log(response);
+        return new Promise((resolve, reject) => {
+            Axios(options).then((response) => {
+                resolve(response);
+                console.log(response);
+            }).catch((error) => {
+                console.log(error);
+            })
         })
+
     }
     /**
      * 返回参数及对应的信息

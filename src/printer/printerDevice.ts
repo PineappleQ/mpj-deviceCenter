@@ -8,6 +8,14 @@ import { IDevice } from './../mode/device';
  * @implements {IDevice}
  */
 export class Printer implements IDevice {
+    
+    /**
+     * 打印机的id
+     * 
+     * @type {string}
+     * @memberOf Printer
+     */
+    id?:string;
     /**
      *设备信息 
      * @memberOf Printer
